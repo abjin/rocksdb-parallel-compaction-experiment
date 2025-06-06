@@ -6,7 +6,7 @@ sudo apt install make
 sudo apt-get install --reinstall g++
 sudo apt-get install libsnappy-dev
 
-git clone https://github.com/facebook/rocksdb
+git clone https://github.com/abjin/rocksdb-parallel-compaction-experiment
 cd rocksdb
 
 make -j 4 ./db_bench
