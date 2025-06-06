@@ -277,37 +277,11 @@ parse_and_save_results() {
     log_info "결과 저장 완료 - Throughput: ${compact_throughput} MB/s, CPU: ${cpu_usage}%, Memory: ${memory_usage} GB"
 }
 
-# Phase 3: 읽기 성능 영향 분석
-phase3_read_performance() {
-    log_phase "Phase 3: 읽기 성능 영향 분석"
-    
-    # 최적 설정으로 추정되는 값들로 읽기 테스트
-    local optimal_configs=(4 8 16)
-    
-    for sub_value in "${optimal_configs[@]}"; do
-        local test_db_dir="${BASE_DIR}/rocksdb_test_sub_${sub_value}"
-        
-        if [ -d "${test_db_dir}" ]; then
-            log_info "읽기 성능 테스트 (subcompactions=${sub_value})"
-            
-            ${DB_BENCH} \
-                --benchmarks=readrandom \
-                --db="${test_db_dir}" \
-                --num=10000000 \
-                --threads=16 \
-                --use_existing_db \
-                --statistics \
-                --histogram \
-                > "${RESULTS_DIR}/read_performance_sub_${sub_value}.txt" 2>&1
-        fi
-    done
-    
-    log_info "Phase 3 완료"
-}
 
-# Phase 4: 결과 분석 및 리포트 생성
-phase4_analysis() {
-    log_phase "Phase 4: 결과 분석 및 리포트 생성"
+
+# Phase 3: 결과 분석 및 리포트 생성
+phase3_analysis() {
+    log_phase "Phase 3: 결과 분석 및 리포트 생성"
     
     # Python 스크립트로 결과 분석 (있는 경우)
     if command -v python3 &> /dev/null; then
@@ -317,7 +291,7 @@ phase4_analysis() {
     # 간단한 요약 리포트 생성
     generate_summary_report
     
-    log_info "Phase 4 완료"
+    log_info "Phase 3 완료"
 }
 
 # 요약 리포트 생성
@@ -482,7 +456,7 @@ main() {
     echo "  - Subcompaction 값: ${SUBCOMPACTION_VALUES[*]}"
     echo "  - 키 개수: ${NUM_KEYS}"
     echo "  - 값 크기: ${VALUE_SIZE} bytes"
-    echo "  - 예상 소요 시간: $(( ${#SUBCOMPACTION_VALUES[@]} * 15 )) - $(( ${#SUBCOMPACTION_VALUES[@]} * 30 ))분"
+    echo "  - 예상 소요 시간: $(( ${#SUBCOMPACTION_VALUES[@]} * 10 )) - $(( ${#SUBCOMPACTION_VALUES[@]} * 20 ))분"
     echo ""
     
     read -p "실험을 시작하시겠습니까? (y/N): " -n 1 -r
@@ -495,8 +469,7 @@ main() {
     # 실험 단계별 실행
     phase1_setup
     phase2_performance_test
-    phase3_read_performance
-    phase4_analysis
+    phase3_analysis
     
     log_info "✅ 모든 실험이 성공적으로 완료되었습니다!"
 }
@@ -527,8 +500,7 @@ show_help() {
 실험 단계:
   Phase 1: 환경 준비 및 초기 설정
   Phase 2: Subcompaction별 성능 테스트 
-  Phase 3: 읽기 성능 영향 분석
-  Phase 4: 결과 분석 및 리포트 생성
+  Phase 3: 결과 분석 및 리포트 생성
 
 EOF
 }
