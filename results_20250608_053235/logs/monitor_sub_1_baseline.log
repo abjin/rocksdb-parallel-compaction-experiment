@@ -1,0 +1,19 @@
+=== 시스템 기준 상태 (Sun Jun  8 05:32:37 UTC 2025) ===
+CPU 정보: 4 cores, Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+메모리 정보: 7.7Gi total, 807Mi used, 6.7Gi available
+디스크 사용량: 48G total, 20G used, 26G available
+현재 로드:  0.10, 0.18, 0.18
+네트워크 연결 수: 14
+
+=== 실행 중인 프로세스 (메모리 사용량 상위 10개) ===
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+papersp+  435167  2.2  2.9 76037016 237848 ?     Sl   05:25   0:09 /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/node --dns-result-order=ipv4first /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+netdata     7658  3.1  1.7 838836 143028 ?       Ssl  Jun06  81:47 /usr/sbin/netdata -P /run/netdata/netdata.pid -D
+papersp+  427564  1.3  1.2 11837916 98468 ?      Sl   04:59   0:27 /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/node /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/out/server-main.js --connection-token=remotessh --accept-server-license-terms --start-server --enable-remote-auto-shutdown --socket-path=/tmp/cursor-bbf902df-228c-434d-a156-e5f24af8e326
+netdata     8040  0.3  1.1 1349224 96712 ?       Sl   Jun06   7:46 /usr/libexec/netdata/plugins.d/go.d.plugin 1
+papersp+  427635  0.2  0.8 11690516 70776 ?      Sl   04:59   0:05 /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/node /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/out/bootstrap-fork --type=ptyHost --logsPath /home/paperspace/.cursor-server/data/logs/20250608T045916
+root        7533  0.0  0.7  96956 60888 ?        S<s  Jun06   0:53 /lib/systemd/systemd-journald
+papersp+  435180  0.0  0.6 11725872 54312 ?      Sl   05:25   0:00 /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/node /home/paperspace/.cursor-server/cli/servers/Stable-53b99ce608cba35127ae3a050c1738a959750860/server/out/bootstrap-fork --type=fileWatcher
+netdata     8107  1.5  0.4 124956 34028 ?        Sl   Jun06  40:28 /usr/libexec/netdata/plugins.d/apps.plugin 1
+root        1459  0.0  0.3 2070224 29336 ?       Ssl  Jun06   0:12 /usr/lib/snapd/snapd
+root        7517  0.0  0.3 289316 27100 ?        SLsl Jun06   0:18 /sbin/multipathd -d -s

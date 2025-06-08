@@ -1,0 +1,29 @@
+# Parallel Compaction 실험 결과 요약
+
+## 실험 정보
+- 실험 시간: Sun Jun  8 07:09:35 UTC 2025
+- 테스트된 Subcompaction 값: 1 2 4 8 12 16 24 32
+- 키 개수: 50000000
+- 값 크기: 100 bytes
+
+## 최적 성능 결과
+
+### 최고 처리량
+- Subcompactions: 8
+- 처리량:  MB/s
+
+## 상세 결과
+Subcompactions,Throughput_MBps,CPU_Usage_Percent,Memory_GB,Compaction_Time_Sec,IO_Read_MBps,IO_Write_MBps,System_Load_Average
+1,,28.3,0.691491,662,0,0,1.367
+2,,51.2,1.06101,628,0,0,2.017
+4,,89,0.732119,681,0,0,3.025
+8,,99.125,0.743643,716,0,0,3.152
+12,,92.5,0.785054,735,0,0,4.126
+16,,98.375,0.720595,740,0,0,4.614
+24,,95,0.752675,722,0,0,5.426
+32,,94,0.826206,676,0,0,4.768
+
+## 파일 위치
+- 상세 결과: ./results_20250608_053235/
+- 로그 파일: ./results_20250608_053235/logs/
+- CSV 데이터: ./results_20250608_053235/compaction_results.csv

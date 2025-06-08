@@ -1,0 +1,16 @@
+=== 시스템 정보 ===
+실험 시작 시간: Sun Jun  8 05:32:37 UTC 2025
+운영체제: Linux pswy21ntc7so 5.15.0-124-generic #134-Ubuntu SMP Fri Sep 27 20:20:17 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+CPU 정보: Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+CPU 코어 수: 4
+메모리 정보: Mem:           7.7Gi       807Mi       747Mi       1.0Mi       6.2Gi       6.7Gi
+디스크 정보: /dev/mapper/ubuntu--vg-root   48G   20G   26G  43% /
+
+=== RocksDB 설정 ===
+DB_BENCH 경로: .//db_bench
+기본 디렉토리: /tmp/rocksdb_subcompaction_test
+키 개수: 50000000
+값 크기: 100 bytes
+키 크기: 16 bytes
+Write Buffer 크기: 64
+Max Background Jobs: 16
