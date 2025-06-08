@@ -22,7 +22,8 @@ SUBCOMPACTION_VALUES=(1 2 4 8 12 16 24 32)
 MAX_BACKGROUND_JOBS=16
 
 # 데이터 설정
-NUM_KEYS=50000000           # 5천만 키 (약 5GB)
+# NUM_KEYS=50000000           # 5천만 키 (약 5GB)
+NUM_KEYS=5000         # 5천만 키 (약 5GB)
 VALUE_SIZE=100
 KEY_SIZE=16
 WRITE_BUFFER_SIZE="64"
@@ -84,56 +85,129 @@ Max Background Jobs: ${MAX_BACKGROUND_JOBS}
 EOF
 }
 
-# 프로세스 정리 함수
+# ========================================
+# 모니터링 시스템
+# ========================================
+
+# 모니터링 프로세스 PID 저장용
+declare -A MONITOR_PIDS
+
+# 모니터링 프로세스 정리
 cleanup_monitors() {
-    log_info "모니터링 프로세스 정리 중..."
-    pkill -f "iostat.*sub_" 2>/dev/null || true
-    pkill -f "vmstat.*sub_" 2>/dev/null || true
-    pkill -f "top.*db_bench" 2>/dev/null || true
-    sleep 2
+    log_info "실행 중인 모니터링 프로세스 정리 중..."
+    
+    # 저장된 PID들 종료
+    for pid in "${MONITOR_PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # 일반적인 모니터링 프로세스들 정리
+    pkill -f "iostat.*rocksdb_monitor" 2>/dev/null || true
+    pkill -f "vmstat.*rocksdb_monitor" 2>/dev/null || true
+    pkill -f "sar.*rocksdb_monitor" 2>/dev/null || true
+    
+    # PID 배열 초기화
+    MONITOR_PIDS=()
+    
+    sleep 1
 }
 
 # 시스템 리소스 모니터링 시작
-start_monitoring() {
+start_system_monitoring() {
     local sub_value=$1
-    local monitor_suffix="sub_${sub_value}"
+    local log_prefix="${LOG_DIR}/monitor_sub_${sub_value}"
     
-    log_info "리소스 모니터링 시작 (subcompactions=${sub_value})"
+    log_info "시스템 리소스 모니터링 시작 (subcompactions=${sub_value})"
     
-    # I/O 모니터링
-    nohup iostat -x ${MONITOR_INTERVAL} > "${LOG_DIR}/iostat_${monitor_suffix}.log" 2>&1 &
+    # 전체 시스템 상태 기록 시작
+    record_system_baseline "${log_prefix}_baseline.log"
     
-    # 메모리 및 CPU 모니터링  
-    nohup vmstat ${MONITOR_INTERVAL} > "${LOG_DIR}/vmstat_${monitor_suffix}.log" 2>&1 &
+    # CPU 및 메모리 모니터링 (간소화)
+    vmstat ${MONITOR_INTERVAL} > "${log_prefix}_vmstat.log" 2>&1 &
+    MONITOR_PIDS["vmstat"]=$!
     
-    # 시스템 전체 모니터링
-    nohup sar -u -r ${MONITOR_INTERVAL} > "${LOG_DIR}/sar_${monitor_suffix}.log" 2>&1 &
+    # I/O 모니터링 (주요 디스크만)
+    iostat -x ${MONITOR_INTERVAL} > "${log_prefix}_iostat.log" 2>&1 &
+    MONITOR_PIDS["iostat"]=$!
     
-    sleep 2  # 모니터링 프로세스 시작 대기
+    # 시스템 로드 모니터링
+    nohup bash -c "
+        while true; do
+            echo \"\$(date '+%Y-%m-%d %H:%M:%S'),\$(uptime | awk -F'load average:' '{print \$2}' | tr -d ' ')\" >> \"${log_prefix}_load.csv\"
+            sleep ${MONITOR_INTERVAL}
+        done
+    " &
+    MONITOR_PIDS["load"]=$!
+    
+    sleep 1  # 모니터링 시스템 안정화 대기
+}
+
+# db_bench 프로세스 전용 모니터링
+start_process_monitoring() {
+    local sub_value=$1
+    local db_bench_pid=$2
+    local log_prefix="${LOG_DIR}/process_sub_${sub_value}"
+    
+    if [ -z "$db_bench_pid" ]; then
+        log_warn "db_bench PID가 제공되지 않아 프로세스 모니터링을 건너뜁니다"
+        return
+    fi
+    
+    log_info "db_bench 프로세스 모니터링 시작 (PID: ${db_bench_pid})"
+    
+    # 프로세스별 리소스 사용량 모니터링
+    nohup bash -c "
+        echo 'timestamp,pid,cpu_percent,memory_percent,vss_kb,rss_kb' > \"${log_prefix}_resource.csv\"
+        while kill -0 $db_bench_pid 2>/dev/null; do
+            ps_output=\$(ps -p $db_bench_pid -o pid,%cpu,%mem,vsz,rss --no-headers 2>/dev/null)
+            if [ ! -z \"\$ps_output\" ]; then
+                echo \"\$(date '+%Y-%m-%d %H:%M:%S'),\$ps_output\" >> \"${log_prefix}_resource.csv\"
+            fi
+            sleep ${MONITOR_INTERVAL}
+        done
+    " &
+    MONITOR_PIDS["process_$db_bench_pid"]=$!
+    
+    # 프로세스 I/O 모니터링 (가능한 경우)
+    if [ -d "/proc/$db_bench_pid" ]; then
+        nohup bash -c "
+            echo 'timestamp,read_bytes,write_bytes' > \"${log_prefix}_io.csv\"
+            while kill -0 $db_bench_pid 2>/dev/null; do
+                if [ -f \"/proc/$db_bench_pid/io\" ]; then
+                    read_bytes=\$(grep 'read_bytes' /proc/$db_bench_pid/io 2>/dev/null | awk '{print \$2}' || echo '0')
+                    write_bytes=\$(grep 'write_bytes' /proc/$db_bench_pid/io 2>/dev/null | awk '{print \$2}' || echo '0')
+                    echo \"\$(date '+%Y-%m-%d %H:%M:%S'),\$read_bytes,\$write_bytes\" >> \"${log_prefix}_io.csv\"
+                fi
+                sleep ${MONITOR_INTERVAL}
+            done
+        " &
+        MONITOR_PIDS["io_$db_bench_pid"]=$!
+    fi
+}
+
+# 시스템 기준 상태 기록
+record_system_baseline() {
+    local output_file=$1
+    
+    cat > "$output_file" << EOF
+=== 시스템 기준 상태 ($(date)) ===
+CPU 정보: $(nproc) cores, $(cat /proc/cpuinfo | grep "model name" | head -1 | cut -d: -f2 | xargs)
+메모리 정보: $(free -h | grep Mem | awk '{print $2 " total, " $3 " used, " $7 " available"}')
+디스크 사용량: $(df -h / | tail -1 | awk '{print $2 " total, " $3 " used, " $4 " available"}')
+현재 로드: $(uptime | awk -F'load average:' '{print $2}')
+네트워크 연결 수: $(ss -tuln | wc -l)
+
+=== 실행 중인 프로세스 (메모리 사용량 상위 10개) ===
+$(ps aux --sort=-%mem | head -11)
+EOF
 }
 
 # 모니터링 중지
-stop_monitoring() {
-    log_info "리소스 모니터링 중지"
+stop_all_monitoring() {
+    log_info "모든 모니터링 중지"
     cleanup_monitors
-}
-
-# DB 벤치 프로세스 모니터링
-monitor_db_bench() {
-    local sub_value=$1
-    local db_bench_pid=$2
-    local monitor_suffix="sub_${sub_value}"
-    
-    if [ ! -z "$db_bench_pid" ]; then
-        # db_bench 프로세스 전용 모니터링
-        nohup top -b -d${MONITOR_INTERVAL} -p ${db_bench_pid} > "${LOG_DIR}/db_bench_top_${monitor_suffix}.log" 2>&1 &
-        
-        # 메모리 사용량 세부 모니터링
-        while kill -0 $db_bench_pid 2>/dev/null; do
-            echo "$(date '+%Y-%m-%d %H:%M:%S'),$(ps -p $db_bench_pid -o pid,ppid,%cpu,%mem,vsz,rss --no-headers)" >> "${LOG_DIR}/db_bench_memory_${monitor_suffix}.csv"
-            sleep ${MONITOR_INTERVAL}
-        done &
-    fi
 }
 
 # ========================================
@@ -165,7 +239,7 @@ phase1_setup() {
     
     # CSV 결과 파일 헤더 생성
     cat > "${RESULTS_DIR}/compaction_results.csv" << EOF
-Subcompactions,Throughput_MBps,CPU_Usage_Percent,Memory_GB,Compaction_Time_Sec,IO_Read_MBps,IO_Write_MBps,Context_Switches_Per_Sec
+Subcompactions,Throughput_MBps,CPU_Usage_Percent,Memory_GB,Compaction_Time_Sec,IO_Read_MBps,IO_Write_MBps,System_Load_Average
 EOF
     
     log_info "환경 준비 완료"
@@ -185,8 +259,8 @@ phase2_performance_test() {
         rm -rf "${test_db_dir}"
         mkdir -p "${test_db_dir}"
         
-        # 리소스 모니터링 시작
-        start_monitoring ${sub_value}
+        # 시스템 모니터링 시작
+        start_system_monitoring ${sub_value}
         
         # RocksDB 성능 테스트 실행
         log_info "db_bench 실행 중... (subcompactions=${sub_value})"
@@ -207,8 +281,8 @@ phase2_performance_test() {
         
         local db_bench_pid=$!
         
-        # db_bench 프로세스 모니터링 시작
-        monitor_db_bench ${sub_value} ${db_bench_pid}
+        # db_bench 프로세스 전용 모니터링 시작
+        start_process_monitoring ${sub_value} ${db_bench_pid}
         
         # db_bench 완료 대기
         wait ${db_bench_pid}
@@ -217,8 +291,8 @@ phase2_performance_test() {
         local end_time=$(date +%s)
         local total_time=$((end_time - start_time))
         
-        # 리소스 모니터링 중지
-        stop_monitoring
+        # 모든 모니터링 중지
+        stop_all_monitoring
         
         if [ $exit_code -eq 0 ]; then
             log_info "Subcompactions=${sub_value} 테스트 완료 (${total_time}초)"
@@ -246,29 +320,96 @@ parse_and_save_results() {
     log_info "결과 파싱 중... (subcompactions=${sub_value})"
     
     # db_bench 결과에서 처리량 추출
-    local throughput=$(grep -E "fillrandom.*ops/sec" "${result_file}" | tail -1 | awk '{print $5}' | sed 's/ops\/sec//' || echo "0")
+    local fillrandom_throughput=$(grep -E "fillrandom.*ops/sec" "${result_file}" | tail -1 | awk '{
+        for(i=1;i<=NF;i++) {
+            if($i ~ /^[0-9.]+$/ && $(i+1) == "ops/sec") {
+                print $i; break
+            }
+        }
+    }' || echo "0")
     
     # 컴팩션 처리량 추출 (MB/s)
-    local compact_throughput=$(grep -E "compact.*MB/s" "${result_file}" | tail -1 | awk '{print $NF}' | sed 's/MB\/s//' || echo "0")
+    local compact_throughput=$(grep -E "compact.*MB/s" "${result_file}" | tail -1 | awk '{
+        for(i=1;i<=NF;i++) {
+            if($i ~ /^[0-9.]+$/ && $(i+1) == "MB/s") {
+                print $i; break
+            }
+        }
+    }' || echo "0")
     
-    # 시스템 리소스 정보 파싱
-    local monitor_suffix="sub_${sub_value}"
-    local cpu_usage=$(tail -10 "${LOG_DIR}/vmstat_${monitor_suffix}.log" 2>/dev/null | grep -v "procs\|r" | awk '{sum+=$(NF-2)} END {if(NR>0) print sum/NR; else print "0"}' || echo "0")
+    # 새로운 모니터링 로그 파일 경로
+    local vmstat_log="${LOG_DIR}/monitor_sub_${sub_value}_vmstat.log"
+    local iostat_log="${LOG_DIR}/monitor_sub_${sub_value}_iostat.log"
+    local process_log="${LOG_DIR}/process_sub_${sub_value}_resource.csv"
+    local load_log="${LOG_DIR}/monitor_sub_${sub_value}_load.csv"
     
-    # 메모리 사용량 계산 (GB)
-    local memory_usage=$(tail -10 "${LOG_DIR}/vmstat_${monitor_suffix}.log" 2>/dev/null | grep -v "procs\|r" | awk '{sum+=$4} END {if(NR>0) print sum/NR/1024/1024; else print "0"}' || echo "0")
+    # CPU 사용률 계산 (vmstat에서 idle 값을 이용)
+    local cpu_usage="0"
+    if [ -f "$vmstat_log" ]; then
+        cpu_usage=$(tail -10 "$vmstat_log" 2>/dev/null | \
+                   grep -v "procs\|r\|free" | \
+                   awk '{if(NF>=15) idle+=$15; count++} END {
+                       if(count>0) print 100-(idle/count); else print "0"
+                   }' || echo "0")
+    fi
     
-    # I/O 통계
-    local io_read=$(tail -10 "${LOG_DIR}/iostat_${monitor_suffix}.log" 2>/dev/null | grep -E "sda|nvme" | awk '{sum+=$6} END {if(NR>0) print sum/NR/1024; else print "0"}' || echo "0")
-    local io_write=$(tail -10 "${LOG_DIR}/iostat_${monitor_suffix}.log" 2>/dev/null | grep -E "sda|nvme" | awk '{sum+=$7} END {if(NR>0) print sum/NR/1024; else print "0"}' || echo "0")
+    # 메모리 사용량 계산 (GB) - vmstat의 사용된 메모리
+    local memory_usage="0"
+    if [ -f "$vmstat_log" ]; then
+        memory_usage=$(tail -10 "$vmstat_log" 2>/dev/null | \
+                      grep -v "procs\|r\|free" | \
+                      awk '{if(NF>=6) used+=$4; count++} END {
+                          if(count>0) print (used/count)/1024/1024; else print "0"
+                      }' || echo "0")
+    fi
     
-    # Context Switches
-    local context_switches=$(tail -10 "${LOG_DIR}/vmstat_${monitor_suffix}.log" 2>/dev/null | grep -v "procs\|r" | awk '{sum+=$12} END {if(NR>0) print sum/NR; else print "0"}' || echo "0")
+    # I/O 통계 (MB/s) - iostat에서 주요 디스크 읽기/쓰기 속도
+    local io_read="0"
+    local io_write="0"
+    if [ -f "$iostat_log" ]; then
+        # 첫 번째 디스크 장치의 평균 I/O 속도 계산
+        io_read=$(tail -20 "$iostat_log" 2>/dev/null | \
+                 grep -E "sda|nvme|xvd" | tail -10 | \
+                 awk '{if(NF>=7) read+=$6; count++} END {
+                     if(count>0) print (read/count)/1024; else print "0"
+                 }' || echo "0")
+        
+        io_write=$(tail -20 "$iostat_log" 2>/dev/null | \
+                  grep -E "sda|nvme|xvd" | tail -10 | \
+                  awk '{if(NF>=7) write+=$7; count++} END {
+                      if(count>0) print (write/count)/1024; else print "0"
+                  }' || echo "0")
+    fi
     
-    # CSV에 결과 추가
-    echo "${sub_value},${compact_throughput},${cpu_usage},${memory_usage},${total_time},${io_read},${io_write},${context_switches}" >> "${RESULTS_DIR}/compaction_results.csv"
+    # 시스템 로드 평균
+    local avg_load="0"
+    if [ -f "$load_log" ]; then
+        avg_load=$(tail -10 "$load_log" 2>/dev/null | \
+                  cut -d',' -f2 | \
+                  awk -F',' '{sum+=$1; count++} END {
+                      if(count>0) print sum/count; else print "0"
+                  }' || echo "0")
+    fi
     
-    log_info "결과 저장 완료 - Throughput: ${compact_throughput} MB/s, CPU: ${cpu_usage}%, Memory: ${memory_usage} GB"
+    # 프로세스별 최대 메모리 사용량 (GB)
+    local peak_process_memory="0"
+    if [ -f "$process_log" ]; then
+        peak_process_memory=$(tail -n +2 "$process_log" 2>/dev/null | \
+                             cut -d',' -f6 | \
+                             awk 'BEGIN{max=0} {if($1>max) max=$1} END {print max/1024/1024}' || echo "0")
+    fi
+    
+    # CSV에 결과 추가 (헤더 순서에 맞게)
+    echo "${sub_value},${compact_throughput},${cpu_usage},${memory_usage},${total_time},${io_read},${io_write},${avg_load}" >> "${RESULTS_DIR}/compaction_results.csv"
+    
+    # 상세 정보 로그
+    log_info "결과 저장 완료:"
+    log_info "  - Fillrandom 처리량: ${fillrandom_throughput} ops/sec"
+    log_info "  - Compact 처리량: ${compact_throughput} MB/s"
+    log_info "  - 평균 CPU 사용률: ${cpu_usage}%"
+    log_info "  - 평균 메모리 사용량: ${memory_usage} GB"
+    log_info "  - 최대 프로세스 메모리: ${peak_process_memory} GB"
+    log_info "  - 총 실행 시간: ${total_time}초"
 }
 
 
@@ -417,7 +558,7 @@ EOF
 # 정리 함수
 cleanup() {
     log_info "실험 정리 중..."
-    cleanup_monitors
+    stop_all_monitoring
     
     # 임시 파일 정리 (선택적)
     # rm -rf "${BASE_DIR}"
