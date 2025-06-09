@@ -1,0 +1,19 @@
+=== 시스템 기준 상태 (Mon Jun  9 05:09:01 UTC 2025) ===
+CPU 정보: 8 cores, Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+메모리 정보: 15Gi total, 857Mi used, 14Gi available
+디스크 사용량: 48G total, 18G used, 28G available
+현재 로드:  2.24, 2.26, 2.12
+네트워크 연결 수: 14
+
+=== 실행 중인 프로세스 (메모리 사용량 상위 10개) ===
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+papersp+  148825  0.5  2.2 76579904 361044 ?     Sl   03:44   0:29 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node --dns-result-order=ipv4first /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+netdata    48364  2.8  0.7 908828 117508 ?       Ssl  02:16   4:59 /opt/netdata/bin/srv/netdata -P /run/netdata/netdata.pid -D
+netdata    48792  0.2  0.5 1349988 96796 ?       Sl   02:16   0:27 /opt/netdata/usr/libexec/netdata/plugins.d/go.d.plugin 1
+papersp+  148666  0.1  0.5 11797364 87996 ?      Sl   03:44   0:09 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/server-main.js --connection-token=remotessh --accept-server-license-terms --start-server --enable-remote-auto-shutdown --socket-path=/tmp/cursor-fb440e2e-2e19-43eb-b314-076fe88dbc40
+papersp+  148866  0.1  0.3 11619392 63960 ?      Sl   03:44   0:06 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/bootstrap-fork --type=ptyHost --logsPath /home/paperspace/.cursor-server/data/logs/20250609T034401
+papersp+  148843  0.0  0.3 11726384 58344 ?      Sl   03:44   0:03 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/bootstrap-fork --type=fileWatcher
+root        2082  0.0  0.2 2365792 36616 ?       Ssl  02:02   0:06 /usr/lib/snapd/snapd
+root       76079  0.0  0.1 223780 27100 ?        SLsl 02:20   0:01 /sbin/multipathd -d -s
+root         859  0.0  0.1 109764 16788 ?        Ssl  01:57   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+root       76078  0.0  0.1 295728 16744 ?        Ssl  02:20   0:00 /usr/libexec/packagekitd
