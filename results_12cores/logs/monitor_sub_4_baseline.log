@@ -1,0 +1,19 @@
+=== 시스템 기준 상태 (Mon Jun  9 05:28:30 UTC 2025) ===
+CPU 정보: 12 cores, Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+메모리 정보: 29Gi total, 1.8Gi used, 27Gi available
+디스크 사용량: 48G total, 9.9G used, 36G available
+현재 로드:  1.75, 1.88, 1.76
+네트워크 연결 수: 8
+
+=== 실행 중인 프로세스 (메모리 사용량 상위 10개) ===
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+papersp+    1904  2.8  4.5 78751792 1397712 ?    Sl   04:53   0:59 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node --dns-result-order=ipv4first /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+root       34816 57.7  0.6 374964 212920 ?       Sl   05:27   0:43 /usr/bin/python3 /usr/bin/unattended-upgrade
+root       36216 17.0  0.4 395136 145412 ?       S    05:28   0:00 /usr/bin/python3 /usr/bin/unattended-upgrade
+root       36489  0.0  0.3 395136 93424 ?        S    05:28   0:00 /usr/bin/python3 /usr/bin/unattended-upgrade
+papersp+    1702  0.2  0.3 11834044 92408 ?      Sl   04:51   0:06 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/server-main.js --connection-token=remotessh --accept-server-license-terms --start-server --enable-remote-auto-shutdown --socket-path=/tmp/cursor-28fc4fae-f343-441d-bccb-c9f68255ef13
+root        5370  0.0  0.2 441852 82628 ?        Ssl  05:04   0:00 /usr/libexec/fwupd/fwupd
+papersp+    1762  0.2  0.2 11624068 68716 ?      Sl   04:52   0:04 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/bootstrap-fork --type=ptyHost --logsPath /home/paperspace/.cursor-server/data/logs/20250609T045159
+papersp+    1916  0.1  0.1 11726528 56664 ?      Sl   04:53   0:04 /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/node /home/paperspace/.cursor-server/cli/servers/Stable-5491d1158b9f2bf4c483cff438c7cc162fd7d130/server/out/bootstrap-fork --type=fileWatcher
+root        2402  0.2  0.1 2588012 37228 ?       Ssl  04:54   0:04 /usr/lib/snapd/snapd
+root        6064  0.0  0.0 223780 27100 ?        SLsl 05:04   0:00 /sbin/multipathd -d -s
