@@ -49,30 +49,20 @@
 **독립변수**: 
 
 - `--subcompactions`: 1, 2, 4, 8, 12, 16, 24, 32
-- `--max_background_jobs`: 4, 8, 16, 24
 
 **종속변수**:
-- 컴팩션 처리량 (MB/s)
+
 - CPU 사용률 (%)
 - 메모리 사용량 (GB)
+
+- 컴팩션 처리량 (MB/s)
 - 컴팩션 완료 시간 (초)
-- I/O 대역폭 활용률 (MB/s)
+- 쓰기 처리량
+- 쓰기 지연시간
 
 ### **실험 단계**
 
-#### Phase 1: 기본 데이터 준비
-```bash
-# 10GB 데이터 생성 (컴팩션 트리거를 위한 충분한 크기)
-./db_bench --benchmarks=fillrandom \
-    --num=100000000 \
-    --value_size=100 \
-    --write_buffer_size=64MB \
-    --max_write_buffer_number=8 \
-    --target_file_size_base=64MB \
-    --statistics
-```
-
-#### Phase 2: Subcompaction 변수별 실험
+#### Phase 1: Subcompaction 변수별 실험
 ```bash
 # 각 subcompaction 설정별 실험
 for sub in 1 2 4 8 12 16 24 32; do
@@ -93,7 +83,7 @@ for sub in 1 2 4 8 12 16 24 32; do
 done
 ```
 
-#### Phase 3: 시스템 리소스 모니터링
+#### Phase 2: 시스템 리소스 모니터링
 ```bash
 # 실험 중 시스템 메트릭 수집
 nohup iostat -x 1 > iostat_sub_$sub.log &
@@ -101,15 +91,7 @@ nohup vmstat 1 > vmstat_sub_$sub.log &
 nohup top -b -d1 -p $(pidof db_bench) > cpu_sub_$sub.log &
 ```
 
-#### Phase 4: 워크로드별 검증
-```bash
-# 읽기 성능에 미치는 영향 분석
-./db_bench --benchmarks=readrandom \
-    --db=/tmp/rocksdb_test_optimal \
-    --num=10000000 \
-    --threads=16 \
-    --statistics
-```
+
 
 ### **통제 변수**
 - 데이터 크기: 5GB (일관된 워크로드)
@@ -120,7 +102,9 @@ nohup top -b -d1 -p $(pidof db_bench) > cpu_sub_$sub.log &
 
 ---
 
-## 4. 실험 결과 (예상)
+
+
+## 4. 실험 결과 (예상) 
 
 ### **컴팩션 처리량 결과**
 ```markdown
